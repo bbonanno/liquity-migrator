@@ -5,27 +5,23 @@ pragma abicoder v2;
 
 import "hardhat/console.sol";
 import "./dependencies/DSProxy.sol";
+import "./dependencies/Uniswap.sol";
 import "./MakerETHMigrator.sol";
-import '@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol';
 import '@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol';
-import '@uniswap/v3-core/contracts/libraries/SqrtPriceMath.sol';
-import '@uniswap/v3-periphery/contracts/base/PeripheryImmutableState.sol';
-import '@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol';
-import '@uniswap/v3-periphery/contracts/libraries/CallbackValidation.sol';
-import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
-import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 
-contract FlashSwapManager is IUniswapV3SwapCallback, PeripheryImmutableState {
+contract FlashSwapManager is IUniswapV3SwapCallback {
     using LowGasSafeMath for uint256;
     using LowGasSafeMath for int256;
 
+    address immutable factory;
     address immutable dai;
     address immutable lusd;
     address migrator;
 
-    constructor(address _factory, address _weth, address _dai, address _lusd) PeripheryImmutableState(_factory, _weth) {
+    constructor(address _factory, address _weth, address _dai, address _lusd) {
         dai = _dai;
         lusd = _lusd;
+        factory = _factory;
     }
 
     function setMigrator(address _migrator) external {
@@ -45,17 +41,12 @@ contract FlashSwapManager is IUniswapV3SwapCallback, PeripheryImmutableState {
 
     function startFlashSwap(FlashParams memory params) external {
         PoolAddress.PoolKey memory poolKey = PoolAddress.PoolKey({token0 : lusd, token1 : dai, fee : params.uniswapFee});
-        IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey));
 
-        //TODO get this as param
-        (uint160 sqrtPriceX96,,,,,,) = pool.slot0();
-        uint160 sqrtPriceX96After = SqrtPriceMath.getNextSqrtPriceFromAmount1RoundingDown(sqrtPriceX96, pool.liquidity(), uint(params.daiAmount), false);
-
-        pool.swap(
+        IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey)).swap(
             params.proxy,
             true,
             - int(params.daiAmount),
-            sqrtPriceX96After,
+            TickMath.MIN_SQRT_RATIO + 1,
             abi.encode(
                 FlashCallbackData({
                     poolKey: poolKey,
