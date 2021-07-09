@@ -4,6 +4,7 @@ import {HardhatUserConfig} from "hardhat/types";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-etherscan";
+import 'hardhat-watcher'
 
 dotEnvConfig();
 
@@ -35,6 +36,21 @@ const config: HardhatUserConfig = {
         // Obtain one at https://etherscan.io/
         apiKey: ETHERSCAN_API_KEY,
     },
+    mocha: {
+        timeout: 120000
+    },
+    watcher: {
+        test: {
+            tasks: [{command: 'test'}],
+            files: ['./test/**/*', './contracts'],
+            verbose: true,
+        },
+        compilation: {
+            tasks: ["compile"],
+            files: ['./contracts'],
+            verbose: true
+        }
+    }
 };
 
 export default config;
