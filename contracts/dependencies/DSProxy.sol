@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.4;
 
 interface DSProxy {
     function execute(address _target, bytes calldata _data) external payable returns (bytes memory response);

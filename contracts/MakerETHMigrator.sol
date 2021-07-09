@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.4;
 pragma abicoder v2;
 
 import "hardhat/console.sol";
@@ -10,14 +10,10 @@ import "./dependencies/DSProxy.sol";
 import "./dependencies/IBorrowerOperations.sol";
 import "./dependencies/Uniswap.sol";
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
-import '@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol';
-import '@uniswap/v3-core/contracts/libraries/FullMath.sol';
-
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import "prb-math/contracts/PRBMath.sol";
 
 contract MakerETHMigrator {
-    using LowGasSafeMath for uint256;
-    using LowGasSafeMath for int256;
     using SafeERC20 for IERC20;
 
     uint256 constant RAY = 10 ** 27;
@@ -32,18 +28,18 @@ contract MakerETHMigrator {
     address immutable factory;
 
     constructor(FlashSwapManager _flashManager,
-                IERC20 _lusd,
-                IBorrowerOperations _borrowerOperations,
-                ManagerLike _manager, 
-                GemJoinLike _ethJoin, 
-                DaiJoinLike _daiJoin,
-                address _factory) {
+        IERC20 _lusd,
+        IBorrowerOperations _borrowerOperations,
+        ManagerLike _manager,
+        GemJoinLike _ethJoin,
+        DaiJoinLike _daiJoin,
+        address _factory) {
         flashSwapManager = _flashManager;
         lusd = _lusd;
         borrowerOperations = _borrowerOperations;
-        manager= _manager;
-        ethJoin= _ethJoin;
-        daiJoin= _daiJoin;
+        manager = _manager;
+        ethJoin = _ethJoin;
+        daiJoin = _daiJoin;
         factory = _factory;
         owner = msg.sender;
     }
@@ -76,11 +72,11 @@ contract MakerETHMigrator {
         wipeAllAndFreeETH(data);
 
         // Collect fee of 0.3%
-        uint fee = FullMath.mulDiv(data.ethToMove, 3, 1000);
+        uint fee = PRBMath.mulDiv(data.ethToMove, 3, 1000);
         TransferHelper.safeTransferETH(owner, fee);
 
         // Open Liquity trove
-        borrowerOperations.openTrove{value : data.ethToMove.sub(fee)}(data.liquityMaxFee, lusdToRepay, data.liquityUpperHint, data.liquityLowerHint);
+        borrowerOperations.openTrove{value : data.ethToMove - fee}(data.liquityMaxFee, lusdToRepay, data.liquityUpperHint, data.liquityLowerHint);
 
         // Complete swap
         lusd.safeTransfer(PoolAddress.computeAddress(factory, data.poolKey), lusdToRepay);
@@ -96,7 +92,7 @@ contract MakerETHMigrator {
         // Joins DAI into the vat
         daiJoin.join(urn, data.daiAmount);
         // Paybacks debt to the CDP and unlocks WETH amount from it
-        manager.frob(data.cdp, - toInt(data.ethToMove), - int(art));
+        manager.frob(data.cdp, - int(data.ethToMove), - int(art));
         // Moves the amount from the CDP urn to proxy's address
         manager.flux(data.cdp, address(this), data.ethToMove);
         // Exits WETH amount to proxy address as a token
@@ -109,7 +105,7 @@ contract MakerETHMigrator {
         address vat = manager.vat();
         address urn = manager.urns(cdp);
         bytes32 ilk = manager.ilks(cdp);
-        
+
         // Gets actual rate from the vat
         (, uint rate,,,) = VatLike(vat).ilks(ilk);
         // Gets actual art value of the urn
@@ -118,15 +114,10 @@ contract MakerETHMigrator {
         // Gets actual daiDebt amount in the urn
         uint dai = VatLike(vat).dai(urn);
 
-        uint rad =  art.mul(rate).sub(dai);
+        uint rad = art * rate - dai;
         daiDebt = rad / RAY;
 
         // If the rad precision has some dust, it will need to request for 1 extra wad wei
-        daiDebt = daiDebt.mul(RAY) < rad ? daiDebt + 1 : daiDebt;
-    }
-
-    function toInt(uint x) internal pure returns (int y) {
-        y = int(x);
-        require(y >= 0, "int-overflow");
+        daiDebt = daiDebt * RAY < rad ? daiDebt + 1 : daiDebt;
     }
 }

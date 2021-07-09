@@ -1,17 +1,14 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.4;
 pragma abicoder v2;
 
 import "hardhat/console.sol";
 import "./dependencies/DSProxy.sol";
 import "./dependencies/Uniswap.sol";
 import "./MakerETHMigrator.sol";
-import '@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol';
 
 contract FlashSwapManager is IUniswapV3SwapCallback {
-    using LowGasSafeMath for uint256;
-    using LowGasSafeMath for int256;
 
     address immutable factory;
     address immutable dai;
