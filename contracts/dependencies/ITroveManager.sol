@@ -4,6 +4,14 @@ pragma solidity ^0.7.6;
 
 interface ITroveManager {
 
+    enum Status {
+        nonExistent,
+        active,
+        closedByOwner,
+        closedByLiquidation,
+        closedByRedemption
+    }
+
     function getEntireDebtAndColl(address _borrower) external view returns (
         uint debt,
         uint coll,
@@ -11,4 +19,5 @@ interface ITroveManager {
         uint pendingETHReward
     );
 
+    function getTroveStatus(address _borrower) external view returns (Status);
 }

@@ -4,7 +4,7 @@ pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 import "hardhat/console.sol";
-import "./interfaces/DSProxy.sol";
+import "./dependencies/DSProxy.sol";
 import "./MakerETHMigrator.sol";
 import '@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol';
 import '@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol';

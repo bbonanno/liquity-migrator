@@ -5,9 +5,9 @@ pragma abicoder v2;
 
 import "hardhat/console.sol";
 import "./FlashSwapManager.sol";
-import "./interfaces/Maker.sol";
-import "./interfaces/DSProxy.sol";
-import "./interfaces/IBorrowerOperations.sol";
+import "./dependencies/Maker.sol";
+import "./dependencies/DSProxy.sol";
+import "./dependencies/IBorrowerOperations.sol";
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol';

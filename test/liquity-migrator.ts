@@ -173,7 +173,7 @@ describe('LiquityMigrator', () => {
         'migrateVaultToTrove',
         [
           cdpId,
-          BigNumber.from(500),
+          500,
           utils.parseUnits('0.01'),
           proxy.address,
           proxy.address,
