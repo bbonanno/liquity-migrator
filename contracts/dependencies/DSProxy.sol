@@ -3,7 +3,7 @@
 pragma solidity ^0.8.4;
 
 interface DSProxy {
-    function execute(address _target, bytes calldata _data) external payable returns (bytes memory response);
+    function execute(address _target, bytes memory _data) external payable returns (bytes memory response);
 
     function setOwner(address owner_) external;
 

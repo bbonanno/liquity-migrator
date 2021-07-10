@@ -89,7 +89,6 @@ if (process.env.EOA) {
       )) as FlashSwapManager__factory
       flashManager = await FlashSwapManagerFactory.deploy(
         uniswapFactory,
-        wethAddress,
         daiAddress,
         lusdAddress,
       )
@@ -104,6 +103,7 @@ if (process.env.EOA) {
         flashManager.address,
         lusdAddress,
         borrowerOperations,
+        troveManager.address,
         vaultManager.address,
         ethJoin,
         daiJoin,
@@ -156,11 +156,7 @@ if (process.env.EOA) {
         const [makerCollateral, makerDebt] = await currentDebtAndCollateral()
         expect(makerCollateral).to.be.eq(0)
         expect(makerDebt).to.be.eq(0)
-        const [
-          liquityDebt,
-          liquityCollateral,
-          ,
-        ] = await troveManager.getEntireDebtAndColl(proxy.address)
+        const [liquityDebt, liquityCollateral, ,] = await troveManager.getEntireDebtAndColl(proxy.address)
         expect(liquityCollateral).to.be.bignumber.lt(initialMakerCollateral)
         
 

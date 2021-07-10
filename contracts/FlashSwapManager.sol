@@ -15,7 +15,7 @@ contract FlashSwapManager is IUniswapV3SwapCallback {
     address immutable lusd;
     address migrator;
 
-    constructor(address _factory, address _weth, address _dai, address _lusd) {
+    constructor(address _factory, address _dai, address _lusd) {
         dai = _dai;
         lusd = _lusd;
         factory = _factory;

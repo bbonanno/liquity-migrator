@@ -7,11 +7,10 @@ import "hardhat/console.sol";
 import "./FlashSwapManager.sol";
 import "./dependencies/Maker.sol";
 import "./dependencies/DSProxy.sol";
-import "./dependencies/IBorrowerOperations.sol";
+import "./dependencies/Liquity.sol";
 import "./dependencies/Uniswap.sol";
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import "prb-math/contracts/PRBMath.sol";
 
 contract MakerETHMigrator {
     using SafeERC20 for IERC20;
@@ -21,6 +20,7 @@ contract MakerETHMigrator {
     address immutable owner;
     FlashSwapManager immutable flashSwapManager;
     IBorrowerOperations immutable borrowerOperations;
+    ITroveManager immutable troveManager;
     IERC20 immutable lusd;
     ManagerLike immutable manager;
     GemJoinLike immutable ethJoin;
@@ -30,6 +30,7 @@ contract MakerETHMigrator {
     constructor(FlashSwapManager _flashManager,
         IERC20 _lusd,
         IBorrowerOperations _borrowerOperations,
+        ITroveManager _troveManager,
         ManagerLike _manager,
         GemJoinLike _ethJoin,
         DaiJoinLike _daiJoin,
@@ -37,6 +38,7 @@ contract MakerETHMigrator {
         flashSwapManager = _flashManager;
         lusd = _lusd;
         borrowerOperations = _borrowerOperations;
+        troveManager = _troveManager;
         manager = _manager;
         ethJoin = _ethJoin;
         daiJoin = _daiJoin;
@@ -72,11 +74,16 @@ contract MakerETHMigrator {
         wipeAllAndFreeETH(data);
 
         // Collect fee of 0.3%
-        uint fee = PRBMath.mulDiv(data.ethToMove, 3, 1000);
+        uint fee = data.ethToMove * 3 / 1000;
         TransferHelper.safeTransferETH(owner, fee);
 
-        // Open Liquity trove
-        borrowerOperations.openTrove{value : data.ethToMove - fee}(data.liquityMaxFee, lusdToRepay, data.liquityUpperHint, data.liquityLowerHint);
+        if(troveManager.getTroveStatus(address(this)) == ITroveManager.Status.active) {
+            // Adjust Liquity trove
+            borrowerOperations.adjustTrove{value : data.ethToMove - fee}(data.liquityMaxFee, 0, lusdToRepay, true, data.liquityUpperHint, data.liquityLowerHint);
+        } else {
+            // Open Liquity trove
+            borrowerOperations.openTrove{value : data.ethToMove - fee}(data.liquityMaxFee, lusdToRepay, data.liquityUpperHint, data.liquityLowerHint);
+        }
 
         // Complete swap
         lusd.safeTransfer(PoolAddress.computeAddress(factory, data.poolKey), lusdToRepay);
